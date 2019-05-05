@@ -35,7 +35,7 @@ $ pipenv run python flappy.py
 ScreenShot
 ----------
 
-![Flappy Bird](screenshot1.png)
+![Screenshot (5)](https://user-images.githubusercontent.com/30649220/57200236-635cc800-6f81-11e9-829c-2c4c579656cf.png)
 
-[pygame]: http://www.pygame.org
-[pipenv]: https://pipenv.readthedocs.io/en/latest/
+
+###Enjoy the game ;)
