@@ -29,8 +29,6 @@ $ pipenv run python flappy.py
 
 5. Use <kbd>&uarr;</kbd> or <kbd>Space</kbd> key to play and <kbd>Esc</kbd> to close the game.
 
-(For x64 windows, get exe [here](http://www.lfd.uci.edu/~gohlke/pythonlibs/#pygame))
-
 
 ScreenShot
 ----------
