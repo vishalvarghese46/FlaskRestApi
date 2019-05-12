@@ -6,10 +6,9 @@ from collections import deque
 import pygame
 from pygame.locals import *
 
-FPS = 60                #Frame size of the program
-ANIMATION_SPEED = 0.18  #The animation speed of the program
-
-WIN_WIDTH = 284 * 2
+FPS = 60
+ANIMATION_SPEED = 0.18  # pixels per millisecond
+WIN_WIDTH = 284 * 2  # BG image size: 284x512 px; tiled twice
 WIN_HEIGHT = 512
 
 
@@ -82,7 +81,7 @@ class Bird(pygame.sprite.Sprite):
             last called.
         """
         if self.msec_to_climb > 0:
-            frac_climb_done = 1 - self.msec_to_climb/Bird.CLIMB_DURATION
+            frac_climb_done = 1 - self.msec_to_climb / Bird.CLIMB_DURATION
             self.y -= (Bird.CLIMB_SPEED * frames_to_msec(delta_frames) *
                        (1 - math.cos(frac_climb_done * math.pi)))
             self.msec_to_climb -= frames_to_msec(delta_frames)
@@ -118,26 +117,6 @@ class Bird(pygame.sprite.Sprite):
     def rect(self):
         """Get the bird's position, width, and height, as a pygame.Rect."""
         return Rect(self.x, self.y, Bird.WIDTH, Bird.HEIGHT)
-
-def load_images():
-    '''load images required by images and return a dict of them'''
-
-
-
-
-    def load_image(img_file_name):
-        file_name = os.path.join('.','image',img_file_name)
-        img = pygame.image.load(file_name)
-        img.convert()
-        return img
-
-    return {
-        'background': load_image('background.png'),
-        'bird_wing_up': load_image('bird_wing_up.png'),
-        'bird_wing_down': load_image('bird_wing_down.png'),
-        'pipe_body': load_image('pipe_body.png'),
-        'pipe_end': load_image('pipe_end.png')
-    }
 
 
 class PipePair(pygame.sprite.Sprite):
@@ -364,6 +343,44 @@ def main():
                                              e.key in (K_UP, K_RETURN, K_SPACE)):
                 bird.msec_to_climb = Bird.CLIMB_DURATION
 
+        if paused:
+            continue  # don't draw anything
+
+        # check for collisions
+        pipe_collision = any(p.collides_with(bird) for p in pipes)
+        if pipe_collision or 0 >= bird.y or bird.y >= WIN_HEIGHT - Bird.HEIGHT:
+            done = True
+
+        for x in (0, WIN_WIDTH / 2):
+            display_surface.blit(images['background'], (x, 0))
+
+        while pipes and not pipes[0].visible:
+            pipes.popleft()
+
+        for p in pipes:
+            p.update()
+            display_surface.blit(p.image, p.rect)
+
+        bird.update()
+        display_surface.blit(bird.image, bird.rect)
+
+        # update and display score
+        for p in pipes:
+            if p.x + PipePair.WIDTH < bird.x and not p.score_counted:
+                score += 1
+                p.score_counted = True
+
+        score_surface = score_font.render(str(score), True, (255, 255, 255))
+        score_x = WIN_WIDTH / 2 - score_surface.get_width() / 2
+        display_surface.blit(score_surface, (score_x, PipePair.PIECE_HEIGHT))
+
+        pygame.display.flip()
+        frame_clock += 1
+    print('Game over! Score: %i' % score)
+    pygame.quit()
 
 
-
+if __name__ == '__main__':
+    # If this module had been imported, __name__ would be 'flappybird'.
+    # It was executed (e.g. by double-clicking the file), so call main.
+    main()
