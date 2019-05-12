@@ -140,7 +140,6 @@ def load_images():
     }
 
 
-
 class PipePair(pygame.sprite.Sprite):
     """Represents an obstacle.
 
@@ -189,20 +188,20 @@ class PipePair(pygame.sprite.Sprite):
         self.score_counted = False
 
         self.image = pygame.Surface((PipePair.WIDTH, WIN_HEIGHT), SRCALPHA)
-        self.image.convert()   # speeds up blitting
+        self.image.convert()  # speeds up blitting
         self.image.fill((0, 0, 0, 0))
         total_pipe_body_pieces = int(
-            (WIN_HEIGHT -                  # fill window from top to bottom
-             3 * Bird.HEIGHT -             # make room for bird to fit through
+            (WIN_HEIGHT -  # fill window from top to bottom
+             3 * Bird.HEIGHT -  # make room for bird to fit through
              3 * PipePair.PIECE_HEIGHT) /  # 2 end pieces + 1 body piece
-            PipePair.PIECE_HEIGHT          # to get number of pipe pieces
+            PipePair.PIECE_HEIGHT  # to get number of pipe pieces
         )
         self.bottom_pieces = randint(1, total_pipe_body_pieces)
         self.top_pieces = total_pipe_body_pieces - self.bottom_pieces
 
         # bottom pipe
         for i in range(1, self.bottom_pieces + 1):
-            piece_pos = (0, WIN_HEIGHT - i*PipePair.PIECE_HEIGHT)
+            piece_pos = (0, WIN_HEIGHT - i * PipePair.PIECE_HEIGHT)
             self.image.blit(pipe_body_img, piece_pos)
         bottom_pipe_end_y = WIN_HEIGHT - self.bottom_height_px
         bottom_end_piece_pos = (0, bottom_pipe_end_y - PipePair.PIECE_HEIGHT)
@@ -220,6 +219,44 @@ class PipePair(pygame.sprite.Sprite):
 
         # for collision detection
         self.mask = pygame.mask.from_surface(self.image)
+
+    @property
+    def top_height_px(self):
+        """Get the top pipe's height, in pixels."""
+        return self.top_pieces * PipePair.PIECE_HEIGHT
+
+    @property
+    def bottom_height_px(self):
+        """Get the bottom pipe's height, in pixels."""
+        return self.bottom_pieces * PipePair.PIECE_HEIGHT
+
+    @property
+    def visible(self):
+        """Get whether this PipePair on screen, visible to the player."""
+        return -PipePair.WIDTH < self.x < WIN_WIDTH
+
+    @property
+    def rect(self):
+        """Get the Rect which contains this PipePair."""
+        return Rect(self.x, 0, PipePair.WIDTH, PipePair.PIECE_HEIGHT)
+
+    def update(self, delta_frames=1):
+        """Update the PipePair's position.
+
+        Arguments:
+        delta_frames: The number of frames elapsed since this method was
+            last called.
+        """
+        self.x -= ANIMATION_SPEED * frames_to_msec(delta_frames)
+
+    def collides_with(self, bird):
+        """Get whether the bird collides with a pipe in this PipePair.
+
+        Arguments:
+        bird: The Bird which should be tested for collision with this
+            PipePair.
+        """
+        return pygame.sprite.collide_mask(self, bird)
 
 
 def load_images():
@@ -262,17 +299,6 @@ def load_images():
             'bird-wingdown': load_image('bird_wing_down.png')}
 
 
-
-def main():
-    pygame.init()
-    display_sufrace = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
-    pygame.display.set_caption('Flappy Bird')
-
-    clock = pygame.time.Clock()
-    score_font = pygame.font.SysFont(None,32,bold=True)
-    images = load_images()
-
-
 def frames_to_msec(frames, fps=FPS):
     """Convert frames to milliseconds at the specified framerate.
 
@@ -293,6 +319,50 @@ def msec_to_frames(milliseconds, fps=FPS):
     return fps * milliseconds / 1000.0
 
 
+def main():
+    """The application's entry point.
+
+    If someone executes this module (instead of importing it, for
+    example), this function is called.
+    """
+
+    pygame.init()
+
+    display_surface = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
+    pygame.display.set_caption('Pygame Flappy Bird')
+
+    clock = pygame.time.Clock()
+    score_font = pygame.font.SysFont(None, 32, bold=True)  # default font
+    images = load_images()
+
+    # the bird stays in the same x position, so bird.x is a constant
+    # center bird on screen
+    bird = Bird(50, int(WIN_HEIGHT / 2 - Bird.HEIGHT / 2), 2,
+                (images['bird-wingup'], images['bird-wingdown']))
+
+    pipes = deque()
+
+    frame_clock = 0  # this counter is only incremented if the game isn't paused
+    score = 0
+    done = paused = False
+    while not done:
+        clock.tick(FPS)
+
+        # Handle this 'manually'.  If we used pygame.time.set_timer(),
+        # pipe addition would be messed up when paused.
+        if not (paused or frame_clock % msec_to_frames(PipePair.ADD_INTERVAL)):
+            pp = PipePair(images['pipe-end'], images['pipe-body'])
+            pipes.append(pp)
+
+        for e in pygame.event.get():
+            if e.type == QUIT or (e.type == KEYUP and e.key == K_ESCAPE):
+                done = True
+                break
+            elif e.type == KEYUP and e.key in (K_PAUSE, K_p):
+                paused = not paused
+            elif e.type == MOUSEBUTTONUP or (e.type == KEYUP and
+                                             e.key in (K_UP, K_RETURN, K_SPACE)):
+                bird.msec_to_climb = Bird.CLIMB_DURATION
 
 
 
